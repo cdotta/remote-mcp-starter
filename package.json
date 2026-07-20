@@ -3,11 +3,28 @@
   "version": "0.1.0",
   "private": false,
   "license": "MIT",
+  "author": "crisis (https://github.com/cdotta)",
+  "homepage": "https://github.com/cdotta/remote-mcp-starter#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cdotta/remote-mcp-starter.git"
+  },
+  "bugs": "https://github.com/cdotta/remote-mcp-starter/issues",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "better-auth",
+    "hono",
+    "prisma",
+    "starter-template"
+  ],
   "type": "module",
   "description": "Production-grade remote MCP server template — Hono + Better Auth (PATs) + stateless Streamable HTTP.",
   "engines": {
     "node": ">=22"
   },
+  "packageManager": "pnpm@9.12.2",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc && node -e \"require('fs').cpSync('src/generated','dist/generated',{recursive:true})\"",

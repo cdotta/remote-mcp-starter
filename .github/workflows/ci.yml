@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      # Mirrors docker-compose.yml: Postgres 17 on host port 5433.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mcp_starter
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mcp_starter"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # No .env in CI — the app and prisma.config.ts read these from the
+      # environment. The test suite's globalSetup rewrites DATABASE_URL per run
+      # to point at its own ephemeral schema inside this database.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5433/mcp_starter?schema=public
+      BETTER_AUTH_SECRET: ci-only-throwaway-secret-not-used-anywhere-else
+      BETTER_AUTH_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Version comes from the packageManager field in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # src/generated/ is git-ignored; materialize the Prisma client before
+      # typechecking or running the suite.
+      - run: pnpm exec prisma generate
+
+      - run: pnpm typecheck
+
+      - run: pnpm test

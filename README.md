@@ -1,5 +1,7 @@
 # remote-mcp-starter
 
+[![CI](https://github.com/cdotta/remote-mcp-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/cdotta/remote-mcp-starter/actions/workflows/ci.yml)
+
 A **remote** MCP server you can actually put in production. Any agent — a
 claude.ai custom connector, Claude Code, Cursor, a Telegram bot — connects to it
 over plain HTTPS with an `Authorization: Bearer <token>` header, and gets a
@@ -329,6 +331,11 @@ The app this was extracted from runs on **Fly.io** with a managed Postgres
   `Origin` header of state-changing auth requests against it), and `PORT`.
 - **HTTPS is mandatory.** You ship a bearer token on every request; terminate TLS
   at the platform's proxy and never expose the plain-HTTP port.
+- **Sign-up is open by default.** Anyone who can reach `/api/auth/sign-up/email`
+  can create an account — there is no email verification or rate limiting out of
+  the box. If your instance isn't meant to be open-registration, gate it before
+  going live (Better Auth's `rateLimit` and email-verification options, or
+  disable sign-up entirely and provision accounts out of band).
 - **Scale out freely.** Stateless mode means there is no session affinity — every
   replica can serve every request, so you can run N instances behind a plain
   round-robin load balancer.
