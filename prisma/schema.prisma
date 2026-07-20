@@ -1,0 +1,148 @@
+// Prisma schema for remote-mcp-starter.
+//
+// Uses the modern `prisma-client` generator (ESM output) together with the
+// @prisma/adapter-pg driver adapter — the Prisma 7 default. The generated
+// client is written into src/generated/ and is git-ignored; run
+// `prisma generate` (or `db:push`) to (re)materialize it.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  runtime      = "nodejs"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Example domain model ───────────────────────────────────
+//
+// A note owned by a single user. `deletedAt` implements soft delete: rows are
+// never physically removed, they are hidden by filtering on `deletedAt IS NULL`.
+// The composite index matches the hot query "my non-deleted notes".
+
+model Note {
+  id        String    @id @default(cuid())
+  userId    String
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deletedAt])
+}
+
+// ─── Auth (Better Auth) ─────────────────────────────────────
+//
+// These models mirror the shape Better Auth's core + apiKey plugin expect.
+// They were produced with `npx @better-auth/cli generate` and then hand-tuned
+// (see the note on the Apikey.user relation below).
+
+model User {
+  id            String   @id
+  name          String
+  email         String
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+  apiKeys  Apikey[]
+  notes    Note[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  // For email/password auth Better Auth stores the password hash here on the
+  // `providerId = "credential"` account row.
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Apikey {
+  id                  String    @id
+  name                String?
+  start               String?
+  prefix              String?
+  // Hashed at rest by Better Auth — the raw key is only ever returned once, at
+  // creation time. Never stored or logged in plaintext.
+  key                 String
+  configId            String
+  // Owner of the key. Better Auth 1.5+ renamed this from `userId` to
+  // `referenceId`; verifying a key returns the owner here, NOT under `userId`.
+  referenceId         String
+  enabled             Boolean   @default(true)
+  rateLimitEnabled    Boolean   @default(true)
+  rateLimitTimeWindow Int?
+  rateLimitMax        Int?
+  requestCount        Int       @default(0)
+  remaining           Int?
+  refillInterval      Int?
+  refillAmount        Int?
+  lastRefillAt        DateTime?
+  lastRequest         DateTime?
+  expiresAt           DateTime?
+  permissions         String?
+  metadata            String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Hand-added relation: the Better Auth CLI does NOT emit this, because it
+  // treats `referenceId` as an opaque string. We wire it to User so that
+  // deleting a user cascades to their keys.
+  user User @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+
+  @@index([referenceId])
+  @@index([key])
+  @@map("apikey")
+}

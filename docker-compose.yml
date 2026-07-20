@@ -1,0 +1,22 @@
+# Local Postgres for development. Host port 5433 (not the default 5432) so it
+# won't collide with a Postgres you may already run locally.
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mcp_starter
+    ports:
+      - "5433:5432"
+    volumes:
+      - mcp_starter_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mcp_starter"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mcp_starter_pgdata:

@@ -1,0 +1,45 @@
+{
+  "name": "remote-mcp-starter",
+  "version": "0.1.0",
+  "private": false,
+  "license": "MIT",
+  "type": "module",
+  "description": "Production-grade remote MCP server template — Hono + Better Auth (PATs) + stateless Streamable HTTP.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "prisma generate && tsc && node -e \"require('fs').cpSync('src/generated','dist/generated',{recursive:true})\"",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@better-auth/api-key": "^1.6.9",
+    "@hono/node-server": "^1.13.8",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@prisma/adapter-pg": "^7.7.0",
+    "@prisma/client": "^7.7.0",
+    "better-auth": "^1.6.9",
+    "dotenv": "^17.4.2",
+    "hono": "^4.6.20",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "prisma": "^7.7.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
+  }
+}
