@@ -14,12 +14,32 @@ const globalForPrisma = globalThis as unknown as {
 
 let cached: PrismaClient | undefined;
 
+// Extract Prisma's `?schema=` query param from the connection string. The
+// @prisma/adapter-pg driver adapter does NOT read this param itself — and,
+// crucially, Prisma fully-qualifies every table name with a schema, defaulting to
+// `public` when none is provided. So to target any non-public schema (production
+// override, or an ephemeral test schema like `mcp_test_<pid>`) the name must be
+// passed explicitly as the adapter's `{ schema }` option. Passing `public` is a
+// no-op vs. the default, so this is transparent for the normal case.
+function schemaFromUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  const query = url.split("?")[1];
+  if (!query) return undefined;
+  return new URLSearchParams(query).get("schema") ?? undefined;
+}
+
 function getClient(): PrismaClient {
   cached ??=
     globalForPrisma.prisma ??
-    new PrismaClient({
-      adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-    });
+    (() => {
+      const connectionString = process.env.DATABASE_URL;
+      const schema = schemaFromUrl(connectionString);
+      const adapter = new PrismaPg(
+        { connectionString },
+        schema ? { schema } : undefined,
+      );
+      return new PrismaClient({ adapter });
+    })();
   if (process.env.NODE_ENV !== "production") {
     globalForPrisma.prisma = cached;
   }

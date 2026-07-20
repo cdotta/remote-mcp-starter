@@ -1,11 +1,17 @@
 import "dotenv/config"; // load .env before anything reads process.env
+import { pathToFileURL } from "node:url";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { auth, verifyPat, requireUser, createPat, listPats, revokePat } from "./auth.js";
 import { createMcpServer } from "./mcp.js";
 
-const app = new Hono();
+// The Hono app is constructed and exported separately from the `serve()` call at
+// the bottom of this file. Exporting `app` lets the integration tests drive the
+// REAL stack in-process via `app.request(...)` — every route, Better Auth, the
+// MCP transport, and Prisma — without opening a TCP listener. The `serve()`
+// block is guarded so importing this module never starts the server.
+export const app = new Hono();
 
 // ─── Better Auth ────────────────────────────────────────────
 // Mount Better Auth's own request handler. It owns everything under
@@ -120,7 +126,16 @@ app.delete("/api/tokens/:id", async (c) => {
 
 // ─── Boot ───────────────────────────────────────────────────
 
-const port = Number(process.env.PORT ?? 3000);
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`remote-mcp-starter listening on http://localhost:${info.port}`);
-});
+// Only bind a listener when this module is the process entry point. Under `node
+// dist/server.js` (or `tsx src/server.ts`) this is true and the server starts;
+// when the integration tests import `app`, it is false and no port is opened.
+const isMain =
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMain) {
+  const port = Number(process.env.PORT ?? 3000);
+  serve({ fetch: app.fetch, port }, (info) => {
+    console.log(`remote-mcp-starter listening on http://localhost:${info.port}`);
+  });
+}
