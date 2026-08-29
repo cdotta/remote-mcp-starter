@@ -193,7 +193,8 @@ jobs:
       # cannot verify will defer; a provisioned one finishes.
       - name: Provision environment
         if: steps.requested-agent.outputs.run == 'true'
-        run: echo "facility: no provision command configured — the crew runs on a bare checkout. Set one in this workflow + .facility.json."
+        run: |
+          echo "facility: no provision command configured — the crew runs on a bare checkout. Set one in this workflow + .facility.json."
 
       - name: Capture /builder delivery baseline
         id: builder-start
