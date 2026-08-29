@@ -163,7 +163,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Provision environment
         if: steps.resolve.outputs.run == 'true'
-        run: echo "facility: no provision command configured — the crew runs on a bare checkout. Set one in this workflow + .facility.json."
+        run: |
+          echo "facility: no provision command configured — the crew runs on a bare checkout. Set one in this workflow + .facility.json."
 
       - name: Install pinned Codex CLI
         if: steps.resolve.outputs.run == 'true'
